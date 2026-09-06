@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video - YouTube Clone</title>
+    <title>Video - LPP</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', Arial, sans-serif; }
         body { background: #0f0f0f; color: #fff; padding: 24px; max-width: 100%; }
@@ -87,12 +87,32 @@
         .search-results { max-width: 1280px; margin: 0 auto; }
         .search-results h3 { font-size: 20px; margin-bottom: 16px; }
         .section-title { font-size: 20px; font-weight: 600; margin: 40px 0 4px; }
-        .back-btn, .clear-search { 
+
+        /* ===== NÚT LPP LOGO ===== */
+        .logo-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff;
+            color: #0f0f0f;
+            font-weight: 900;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            margin-bottom: 16px;
+            transition: background 0.2s;
+        }
+        .logo-btn:hover { background: #e6e6e6; }
+
+        .clear-search { 
             background: #272727; border: none; color: #fff; 
             padding: 8px 16px; border-radius: 18px; cursor: pointer; 
             font-size: 14px; margin-bottom: 16px; transition: background 0.2s;
         }
-        .back-btn:hover, .clear-search:hover { background: #3f3f3f; }
+        .clear-search:hover { background: #3f3f3f; }
         .hidden { display: none !important; }
 
         /* === TỐI ƯU DI ĐỘNG === */
@@ -121,7 +141,8 @@
 <!-- KHUNG PHÁT + VIDEO LIÊN QUAN -->
 <div class="player-layout hidden" id="playerLayout">
     <div class="video-player">
-        <button class="back-btn" onclick="goHome()">← Trở về</button>
+        <!-- Nút LPP logo thay vì chữ Trở về -->
+        <button class="logo-btn" onclick="goHome()">LPP</button>
         <div class="player-wrapper">
             <iframe id="videoFrame" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
         </div>
@@ -218,13 +239,12 @@ async function playVideo(videoId, rawTitle = "") {
     window.scrollTo(0, 0);
 }
 
-// === TẢI VIDEO LIÊN QUAN - ĐÃ SỬA: Bỏ video hiện tại + Tải đủ 12 video ===
+// === TẢI VIDEO LIÊN QUAN ===
 async function loadRelatedVideos(videoId) {
     const container = document.getElementById("relatedVideos");
     container.innerHTML = "<p>Đang tải video liên quan...</p>";
     
     try {
-        // ✅ Tải 12 video liên quan (tăng maxResults)
         const res = await fetch(
             `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=12&regionCode=VN&key=${API_KEY}`
         );
@@ -236,22 +256,18 @@ async function loadRelatedVideos(videoId) {
             throw new Error("Không có kết quả từ relatedToVideoId");
         }
         
-        // ✅ LỌC BỎ VIDEO ĐANG PHÁT ra khỏi danh sách
         const filteredItems = data.items.filter(item => item.id.videoId !== videoId);
         
         if (filteredItems.length === 0) {
             throw new Error("Chỉ có video hiện tại, không có video khác");
         }
         
-        // ✅ Hiển thị danh sách đã lọc
         renderRelatedList(filteredItems, "relatedVideos");
         
     } catch (e) {
-        // ✅ Fallback: Tìm video tương tự bằng từ khóa kênh + tiêu đề
         container.innerHTML = `<p class='error-text'>Đang tải video tương tự...</p>`;
         
         try {
-            // Lấy thông tin video hiện tại để tìm tương tự
             const videoRes = await fetch(
                 `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`
             );
@@ -260,11 +276,9 @@ async function loadRelatedVideos(videoId) {
             let searchQuery = "nhạc";
             if (videoData.items && videoData.items[0]) {
                 const snippet = videoData.items[0].snippet;
-                // Tìm theo tên kênh + từ khóa trong tiêu đề
                 searchQuery = `${snippet.channelTitle} ${snippet.title.split(" ").slice(0, 5).join(" ")}`;
             }
             
-            // Tìm 12 video liên quan
             const res = await fetch(
                 `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=12&regionCode=VN&key=${API_KEY}`
             );
@@ -272,7 +286,6 @@ async function loadRelatedVideos(videoId) {
             
             if (!data.items || data.items.length === 0) throw new Error("Không tìm thấy");
             
-            // ✅ Lọc bỏ video hiện tại
             const filtered = data.items.filter(item => item.id.videoId !== videoId);
             
             if (filtered.length === 0) {
@@ -335,17 +348,23 @@ function renderRelatedList(videos, containerId) {
 
 // === TẢI TRANG CHỦ ===
 async function loadHomePage() {
-    // Hàng 1: Kênh 1 — thay channelId của bạn
-    const ch1 = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=UC-8Qv...&maxResults=8&regionCode=VN&key=${API_KEY}`).then(r=>r.json());
+    // Hàng 1: Kênh 1 với channelId mới
+    const ch1 = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=UCLCRwRXKsfzHPBIGD1taWoA&maxResults=8&regionCode=VN&key=${API_KEY}`).then(r=>r.json());
     renderVideoGrid(ch1.items, "channel1");
 
     // Hàng 2: Tìm "nhạc hay 2026"
     const search = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=nhạc hay 2026&maxResults=8&regionCode=VN&key=${API_KEY}`).then(r=>r.json());
     renderVideoGrid(search.items, "searchList");
 
-    // Hàng 3: Trending Việt Nam
+    // Hàng 3: Trending Việt Nam — đã sửa lấy video hợp lệ
     const trend = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=8&regionCode=VN&key=${API_KEY}`).then(r=>r.json());
-    renderVideoGrid(trend.items.map(item => ({...item, id: {videoId: item.id}})), "trendingList");
+
+    // ✅ Sửa: Kiểm tra dữ liệu trước khi render, không bị lỗi nếu không có video
+    if (trend.items && trend.items.length > 0) {
+        renderVideoGrid(trend.items.map(item => ({...item, id: {videoId: item.id}})), "trendingList");
+    } else {
+        document.getElementById("trendingList").innerHTML = `<p class="error-text">Không có video trending Việt Nam</p>`;
+    }
 }
 
 function goHome() {
